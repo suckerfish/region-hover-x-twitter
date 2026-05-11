@@ -1,3 +1,4 @@
+console.log('[XRH] content script loaded');
 const CACHE = new Map();
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const HOVER_DELAY_MS = 400;
@@ -49,23 +50,34 @@ function cancelHide() {
 
 // ─── DOM helpers ─────────────────────────────────────────────────────────────
 
-function isPfp(el) {
-  if (el.tagName !== 'IMG') return false;
-  if (el.src && el.src.includes('/profile_images/')) return true;
-  if (el.closest('[data-testid="Tweet-User-Avatar"]')) return true;
-  if (el.closest('[data-testid="UserAvatar"]')) return true;
-  return false;
-}
-
-function extractUsername(el) {
+// Returns username if el (or a close ancestor) is an avatar link containing a profile image.
+function getAvatarUsername(el) {
   let node = el;
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 8; i++) {
     if (!node || node === document.body) break;
+
     if (node.tagName === 'A') {
       const href = node.getAttribute('href') || '';
-      // Match /username but not /i/... paths
-      if (/^\/[A-Za-z0-9_]{1,50}$/.test(href)) return href.slice(1);
+      if (/^\/[A-Za-z0-9_]{1,50}$/.test(href)) {
+        // Confirm this link wraps a profile image
+        const img = node.querySelector('img[src*="profile_images"]');
+        if (img) return href.slice(1);
+      }
     }
+
+    // Also handle the case where the img itself is hovered
+    if (node.tagName === 'IMG' && node.src?.includes('/profile_images/')) {
+      let parent = node.parentElement;
+      for (let j = 0; j < 12; j++) {
+        if (!parent || parent === document.body) break;
+        if (parent.tagName === 'A') {
+          const href = parent.getAttribute('href') || '';
+          if (/^\/[A-Za-z0-9_]{1,50}$/.test(href)) return href.slice(1);
+        }
+        parent = parent.parentElement;
+      }
+    }
+
     node = node.parentElement;
   }
   return null;
@@ -116,6 +128,7 @@ function esc(str) {
 // ─── Main flow ───────────────────────────────────────────────────────────────
 
 async function fetchAndShow(username, x, y) {
+  console.log('[XRH] fetchAndShow start', username, x, y);
   showTooltip(x, y, renderLoading(username));
 
   const cached = CACHE.get(username);
@@ -127,7 +140,9 @@ async function fetchAndShow(username, x, y) {
   let data;
   try {
     data = await chrome.runtime.sendMessage({ type: 'FETCH_USER', username });
+    console.log('[XRH] got response:', data);
   } catch (e) {
+    console.log('[XRH] sendMessage threw:', e.message);
     showTooltip(x, y, renderError('Extension disconnected — reload page'));
     return;
   }
@@ -150,26 +165,23 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // ─── Event listeners ─────────────────────────────────────────────────────────
 
 document.addEventListener('mouseover', (e) => {
-  const el = e.target;
-  if (!isPfp(el)) return;
-
-  const username = extractUsername(el);
+  const username = getAvatarUsername(e.target);
+  console.log('[XRH] hover:', e.target.tagName, '→ avatar username:', username);
   if (!username || username === currentTarget) return;
 
   currentTarget = username;
   clearTimeout(hoverTimer);
 
-  // Snapshot position at hover time
   const x = e.clientX;
   const y = e.clientY;
 
   hoverTimer = setTimeout(() => {
+    console.log('[XRH] timer fired, fetching', username);
     fetchAndShow(username, x, y);
   }, HOVER_DELAY_MS);
 });
 
 document.addEventListener('mouseout', (e) => {
-  if (!isPfp(e.target)) return;
-  // Small delay so moving onto the tooltip doesn't hide it
+  if (!getAvatarUsername(e.target)) return;
   hoverTimer = setTimeout(hideTooltip, 100);
 });
