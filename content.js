@@ -1,6 +1,6 @@
 const CACHE = new Map();
 const CACHE_TTL_MS = 30 * 60 * 1000;
-const HOVER_DELAY_MS = 400;
+const HOVER_DELAY_MS = 2000;
 
 let tooltip = null;
 let hoverTimer = null;
