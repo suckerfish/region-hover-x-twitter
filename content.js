@@ -59,7 +59,7 @@ function isPfp(el) {
 
 function extractUsername(el) {
   let node = el;
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 12; i++) {
     if (!node || node === document.body) break;
     if (node.tagName === 'A') {
       const href = node.getAttribute('href') || '';
