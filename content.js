@@ -166,7 +166,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 document.addEventListener('mouseover', (e) => {
   const username = getAvatarUsername(e.target);
-  if (!username || username === currentTarget) return;
+  if (!username) return;
+
+  // Re-entering the same avatar (e.g. moving between child elements) — cancel any pending hide
+  if (username === currentTarget) {
+    clearTimeout(hoverTimer);
+    return;
+  }
 
   currentTarget = username;
   clearTimeout(hoverTimer);
@@ -181,6 +187,9 @@ document.addEventListener('mouseover', (e) => {
 
 document.addEventListener('mouseout', (e) => {
   if (!getAvatarUsername(e.target)) return;
+  // relatedTarget is where the mouse is going — if still within the avatar, do nothing
+  if (e.relatedTarget && getAvatarUsername(e.relatedTarget)) return;
   clearTimeout(hoverTimer);
+  currentTarget = null;
   hoverTimer = setTimeout(hideTooltip, 400);
 });
