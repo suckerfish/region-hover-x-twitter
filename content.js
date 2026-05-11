@@ -96,13 +96,17 @@ function renderData(data) {
   const rows = [];
 
   if (data.accountBasedIn) {
-    rows.push(`<div class="xrh-row"><span class="xrh-label">Based in</span><span class="xrh-value">${esc(data.accountBasedIn)}</span></div>`);
+    const vpn = data.locationAccurate === false ? ' <span class="xrh-muted">(VPN?)</span>' : '';
+    rows.push(`<div class="xrh-row"><span class="xrh-label">Based in</span><span class="xrh-value">${esc(data.accountBasedIn)}${vpn}</span></div>`);
+  }
+  if (data.source) {
+    rows.push(`<div class="xrh-row"><span class="xrh-label">Via</span><span class="xrh-value">${esc(data.source)}</span></div>`);
   }
   if (data.location) {
     rows.push(`<div class="xrh-row"><span class="xrh-label">Location</span><span class="xrh-value">${esc(data.location)}</span></div>`);
   }
   if (!data.accountBasedIn && !data.location) {
-    rows.push(`<div class="xrh-row xrh-muted">No location set</div>`);
+    rows.push(`<div class="xrh-row xrh-muted">No location data</div>`);
   }
   if (data.createdAt) {
     const year = new Date(data.createdAt).getFullYear();

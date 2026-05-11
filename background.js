@@ -4,8 +4,9 @@
 const SESSION_KEYS = {
   AUTH: 'authToken',
   CSRF: 'csrfToken',
-  QUERY_ID: 'userByScreenNameQueryId',
-  FEATURES: 'userByScreenNameFeatures',
+  SCREEN_NAME_QUERY_ID: 'userByScreenNameQueryId',
+  SCREEN_NAME_FEATURES: 'userByScreenNameFeatures',
+  ABOUT_QUERY_ID: 'aboutAccountQueryId',
 };
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
@@ -17,20 +18,19 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
       if (name === 'x-csrf-token') updates[SESSION_KEYS.CSRF] = header.value;
     }
 
-    // Capture queryId and features from X's own UserByScreenName calls
-    const match = details.url.match(/graphql\/([^/]+)\/UserByScreenName/);
-    if (match) {
-      updates[SESSION_KEYS.QUERY_ID] = match[1];
+    const aboutMatch = details.url.match(/graphql\/([^/]+)\/AboutAccountQuery/);
+    if (aboutMatch) updates[SESSION_KEYS.ABOUT_QUERY_ID] = aboutMatch[1];
+
+    const screenNameMatch = details.url.match(/graphql\/([^/]+)\/UserByScreenName/);
+    if (screenNameMatch) {
+      updates[SESSION_KEYS.SCREEN_NAME_QUERY_ID] = screenNameMatch[1];
       try {
-        const url = new URL(details.url);
-        const features = url.searchParams.get('features');
-        if (features) updates[SESSION_KEYS.FEATURES] = features;
+        const features = new URL(details.url).searchParams.get('features');
+        if (features) updates[SESSION_KEYS.SCREEN_NAME_FEATURES] = features;
       } catch (_) {}
     }
 
-    if (Object.keys(updates).length) {
-      chrome.storage.session.set(updates);
-    }
+    if (Object.keys(updates).length) chrome.storage.session.set(updates);
   },
   { urls: ['https://x.com/i/api/*', 'https://api.x.com/*'] },
   ['requestHeaders', 'extraHeaders']
@@ -41,21 +41,26 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     fetchUser(message.username)
       .then(sendResponse)
       .catch((e) => sendResponse({ error: e.message }));
-    return true; // keep channel open for async response
+    return true;
   }
   if (message.type === 'GET_STATUS') {
     chrome.storage.session.get(Object.values(SESSION_KEYS)).then((stored) => {
       sendResponse({
         hasTokens: !!(stored[SESSION_KEYS.AUTH] && stored[SESSION_KEYS.CSRF]),
-        hasQueryId: !!stored[SESSION_KEYS.QUERY_ID],
+        hasQueryId: !!stored[SESSION_KEYS.ABOUT_QUERY_ID] || !!stored[SESSION_KEYS.SCREEN_NAME_QUERY_ID],
       });
     });
     return true;
   }
 });
 
-async function fetchUser(username) {
+async function getTokens() {
   const stored = await chrome.storage.session.get(Object.values(SESSION_KEYS));
+  return stored;
+}
+
+async function fetchUser(username) {
+  const stored = await getTokens();
   const authToken = stored[SESSION_KEYS.AUTH];
   const csrfToken = stored[SESSION_KEYS.CSRF];
 
@@ -63,67 +68,96 @@ async function fetchUser(username) {
     return { error: 'Not ready — browse X for a moment so tokens load.' };
   }
 
-  // Use captured queryId or fall back to a known-good default
-  const queryId = stored[SESSION_KEYS.QUERY_ID] || 'G3KGOASz96M-Qu0nwmGXNg';
+  const headers = {
+    Authorization: authToken,
+    'x-csrf-token': csrfToken,
+  };
 
-  const variables = JSON.stringify({
-    screen_name: username,
-    withSafetyModeUserFields: true,
-  });
+  // Run both queries in parallel
+  const [aboutData, legacyData] = await Promise.all([
+    fetchAbout(username, stored, headers),
+    fetchLegacy(username, stored, headers),
+  ]);
 
-  // Use captured features or fall back to minimal set
+  if (aboutData.error && legacyData.error) {
+    return { error: aboutData.error };
+  }
+
+  return {
+    name: aboutData.name || legacyData.name || null,
+    username: aboutData.username || legacyData.username || username,
+    accountBasedIn: aboutData.accountBasedIn || null,
+    source: aboutData.source || null,
+    locationAccurate: aboutData.locationAccurate ?? null,
+    location: legacyData.location || null,
+    createdAt: aboutData.createdAt || legacyData.createdAt || null,
+    verified: legacyData.verified || false,
+  };
+}
+
+async function fetchAbout(username, stored, headers) {
+  const queryId = stored[SESSION_KEYS.ABOUT_QUERY_ID] || 'zUnx-DLN9dkwOkNhTLySjg';
+  const url =
+    `https://x.com/i/api/graphql/${queryId}/AboutAccountQuery` +
+    `?variables=${encodeURIComponent(JSON.stringify({ screenName: username }))}`;
+
+  try {
+    const response = await fetch(url, { headers, credentials: 'include' });
+    if (response.status === 429) return { error: 'Rate limited by X' };
+    if (!response.ok) return { error: `AboutAccountQuery HTTP ${response.status}` };
+
+    const data = await response.json();
+    const result = data?.data?.user_result_by_screen_name?.result;
+    if (!result) return { error: 'User not found' };
+
+    const about = result.about_profile || {};
+    const core = result.core || {};
+
+    return {
+      name: core.name || null,
+      username: core.screen_name || username,
+      accountBasedIn: about.account_based_in || null,
+      source: about.source || null,
+      locationAccurate: about.location_accurate ?? null,
+      createdAt: core.created_at || null,
+    };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+async function fetchLegacy(username, stored, headers) {
+  const queryId = stored[SESSION_KEYS.SCREEN_NAME_QUERY_ID] || 'G3KGOASz96M-Qu0nwmGXNg';
   const features =
-    stored[SESSION_KEYS.FEATURES] ||
+    stored[SESSION_KEYS.SCREEN_NAME_FEATURES] ||
     JSON.stringify({
       hidden_profile_subscriptions_enabled: true,
       rweb_tipjar_consumption_enabled: true,
       responsive_web_graphql_exclude_directive_enabled: true,
       verified_phone_label_enabled: false,
-      subscriptions_verification_info_is_identity_verified_enabled: true,
-      subscriptions_verification_info_verified_since_enabled: true,
-      highlights_tweets_tab_ui_enabled: true,
-      responsive_web_twitter_article_notes_tab_enabled: true,
-      creator_subscriptions_tweet_preview_api_enabled: true,
-      responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
       responsive_web_graphql_timeline_navigation_enabled: true,
     });
 
   const url =
     `https://x.com/i/api/graphql/${queryId}/UserByScreenName` +
-    `?variables=${encodeURIComponent(variables)}` +
+    `?variables=${encodeURIComponent(JSON.stringify({ screen_name: username, withSafetyModeUserFields: true }))}` +
     `&features=${encodeURIComponent(features)}`;
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: authToken,
-      'x-csrf-token': csrfToken,
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  });
+  try {
+    const response = await fetch(url, { headers, credentials: 'include' });
+    if (!response.ok) return { error: `UserByScreenName HTTP ${response.status}` };
 
-  if (response.status === 429) return { error: 'Rate limited by X' };
-  if (!response.ok) return { error: `X API error ${response.status}` };
+    const data = await response.json();
+    const legacy = data?.data?.user?.result?.legacy || {};
 
-  const data = await response.json();
-  const result = data?.data?.user?.result;
-
-  if (!result) return { error: 'User not found or suspended' };
-
-  const legacy = result.legacy || {};
-
-  return {
-    name: legacy.name || null,
-    username: legacy.screen_name || username,
-    // X-determined region (shown on about page) — may live in different paths
-    accountBasedIn:
-      result.account_based_in ||
-      result.affiliates_highlighted_label?.label?.userLabelType ||
-      legacy.account_based_in ||
-      null,
-    // User-set location field
-    location: legacy.location || null,
-    verified: legacy.verified || result.is_blue_verified || false,
-    createdAt: legacy.created_at || null,
-  };
+    return {
+      name: legacy.name || null,
+      username: legacy.screen_name || username,
+      location: legacy.location || null,
+      verified: legacy.verified || data?.data?.user?.result?.is_blue_verified || false,
+      createdAt: legacy.created_at || null,
+    };
+  } catch (e) {
+    return { error: e.message };
+  }
 }
