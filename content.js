@@ -29,8 +29,8 @@ function showTooltip(x, y, html) {
   requestAnimationFrame(() => {
     const tw = t.offsetWidth + 16;
     const th = t.offsetHeight + 16;
-    const left = x + tw > window.innerWidth ? x - tw : x + 12;
-    const top = y + th > window.innerHeight ? y - th : y + 12;
+    const left = x + tw > window.innerWidth ? x - tw - 50 : x + 62;
+    const top = y + th > window.innerHeight ? y - th - 50 : y + 62;
     t.style.left = `${left}px`;
     t.style.top = `${top}px`;
     t.style.opacity = '1';
