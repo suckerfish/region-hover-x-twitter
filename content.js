@@ -179,6 +179,13 @@ document.addEventListener('mouseover', (e) => {
   showTimer = setTimeout(() => fetchAndShow(username, x, y), HOVER_DELAY_MS);
 });
 
+window.addEventListener('scroll', () => {
+  clearTimeout(showTimer);
+  clearTimeout(hideTimer);
+  currentTarget = null;
+  hideTooltip();
+}, { passive: true });
+
 document.addEventListener('mouseout', (e) => {
   if (!getAvatarUsername(e.target)) return;
   if (e.relatedTarget && getAvatarUsername(e.relatedTarget)) return; // still within avatar
