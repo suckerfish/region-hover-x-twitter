@@ -1,4 +1,3 @@
-console.log('[XRH] content script loaded');
 const CACHE = new Map();
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const HOVER_DELAY_MS = 400;
@@ -128,7 +127,6 @@ function esc(str) {
 // ─── Main flow ───────────────────────────────────────────────────────────────
 
 async function fetchAndShow(username, x, y) {
-  console.log('[XRH] fetchAndShow start', username, x, y);
   showTooltip(x, y, renderLoading(username));
 
   const cached = CACHE.get(username);
@@ -140,9 +138,7 @@ async function fetchAndShow(username, x, y) {
   let data;
   try {
     data = await chrome.runtime.sendMessage({ type: 'FETCH_USER', username });
-    console.log('[XRH] got response:', data);
   } catch (e) {
-    console.log('[XRH] sendMessage threw:', e.message);
     showTooltip(x, y, renderError('Extension disconnected — reload page'));
     return;
   }
@@ -166,7 +162,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 document.addEventListener('mouseover', (e) => {
   const username = getAvatarUsername(e.target);
-  console.log('[XRH] hover:', e.target.tagName, '→ avatar username:', username);
   if (!username || username === currentTarget) return;
 
   currentTarget = username;
@@ -176,12 +171,11 @@ document.addEventListener('mouseover', (e) => {
   const y = e.clientY;
 
   hoverTimer = setTimeout(() => {
-    console.log('[XRH] timer fired, fetching', username);
     fetchAndShow(username, x, y);
   }, HOVER_DELAY_MS);
 });
 
 document.addEventListener('mouseout', (e) => {
   if (!getAvatarUsername(e.target)) return;
-  hoverTimer = setTimeout(hideTooltip, 100);
+  hoverTimer = setTimeout(hideTooltip, 400);
 });
