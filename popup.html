@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 220px;
+      padding: 14px 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      color: #0f1419;
+      margin: 0;
+    }
+    h3 { margin: 0 0 12px; font-size: 14px; }
+    .row { display: flex; justify-content: space-between; margin: 6px 0; }
+    .label { color: #536471; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .ok { background: #00ba7c; }
+    .no { background: #f4212e; }
+    button {
+      margin-top: 14px;
+      width: 100%;
+      padding: 7px;
+      border: 1px solid #cfd9de;
+      border-radius: 9999px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: #0f1419;
+    }
+    button:hover { background: #f7f9f9; }
+    #status-msg { margin-top: 10px; font-size: 11px; color: #536471; }
+  </style>
+</head>
+<body>
+  <h3>X Region Hover</h3>
+  <div class="row">
+    <span class="label">Auth tokens</span>
+    <span id="tokens">…</span>
+  </div>
+  <div class="row">
+    <span class="label">Query ID</span>
+    <span id="queryid">…</span>
+  </div>
+  <div class="row">
+    <span class="label">Cache entries</span>
+    <span id="cache">—</span>
+  </div>
+  <div id="status-msg"></div>
+  <button id="clear-btn">Clear cache</button>
+  <script src="popup.js"></script>
+</body>
+</html>

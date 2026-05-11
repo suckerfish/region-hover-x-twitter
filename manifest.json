@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "X Region Hover",
+  "version": "1.0.0",
+  "description": "Show account region on profile picture hover — only fetches on demand.",
+  "permissions": ["storage", "webRequest"],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "X Region Hover"
+  }
+}
