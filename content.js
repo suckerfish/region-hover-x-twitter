@@ -181,5 +181,6 @@ document.addEventListener('mouseover', (e) => {
 
 document.addEventListener('mouseout', (e) => {
   if (!getAvatarUsername(e.target)) return;
+  clearTimeout(hoverTimer);
   hoverTimer = setTimeout(hideTooltip, 400);
 });
