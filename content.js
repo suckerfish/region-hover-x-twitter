@@ -3,7 +3,8 @@ const CACHE_TTL_MS = 30 * 60 * 1000;
 const HOVER_DELAY_MS = 2000;
 
 let tooltip = null;
-let hoverTimer = null;
+let showTimer = null;
+let hideTimer = null;
 let currentTarget = null;
 
 // ─── Tooltip ────────────────────────────────────────────────────────────────
@@ -39,12 +40,11 @@ function showTooltip(x, y, html) {
 
 function hideTooltip() {
   if (tooltip) tooltip.style.display = 'none';
-  clearTimeout(hoverTimer);
   currentTarget = null;
 }
 
 function cancelHide() {
-  clearTimeout(hoverTimer);
+  clearTimeout(hideTimer);
 }
 
 // ─── DOM helpers ─────────────────────────────────────────────────────────────
@@ -168,28 +168,21 @@ document.addEventListener('mouseover', (e) => {
   const username = getAvatarUsername(e.target);
   if (!username) return;
 
-  // Re-entering the same avatar (e.g. moving between child elements) — cancel any pending hide
-  if (username === currentTarget) {
-    clearTimeout(hoverTimer);
-    return;
-  }
+  clearTimeout(hideTimer); // moving within or back into avatar — cancel pending hide
 
+  if (username === currentTarget) return; // show timer already running, leave it alone
+
+  clearTimeout(showTimer);
   currentTarget = username;
-  clearTimeout(hoverTimer);
-
   const x = e.clientX;
   const y = e.clientY;
-
-  hoverTimer = setTimeout(() => {
-    fetchAndShow(username, x, y);
-  }, HOVER_DELAY_MS);
+  showTimer = setTimeout(() => fetchAndShow(username, x, y), HOVER_DELAY_MS);
 });
 
 document.addEventListener('mouseout', (e) => {
   if (!getAvatarUsername(e.target)) return;
-  // relatedTarget is where the mouse is going — if still within the avatar, do nothing
-  if (e.relatedTarget && getAvatarUsername(e.relatedTarget)) return;
-  clearTimeout(hoverTimer);
+  if (e.relatedTarget && getAvatarUsername(e.relatedTarget)) return; // still within avatar
+  clearTimeout(showTimer);
   currentTarget = null;
-  hoverTimer = setTimeout(hideTooltip, 400);
+  hideTimer = setTimeout(hideTooltip, 400);
 });
