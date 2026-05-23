@@ -4,6 +4,8 @@ A Chrome extension that shows the X-determined "based in" region for any account
 
 Unlike always-on alternatives, this extension **only makes an API call when you actually hover** — no background polling, no rate limit issues, no account risk from bulk scraping.
 
+![Region Hover tooltip showing Based in, Via, and Joined fields](screenshots/hover_x_screenshot.png)
+
 ---
 
 ## What it shows
