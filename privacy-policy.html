@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy — Region Hover for X / Twitter</title>
+  <style>
+    body {
+      max-width: 680px;
+      margin: 60px auto;
+      padding: 0 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #0f1419;
+    }
+    h1 { font-size: 24px; margin-bottom: 4px; }
+    h2 { font-size: 18px; margin-top: 36px; }
+    p, ul { margin: 12px 0; }
+    ul { padding-left: 20px; }
+    .meta { color: #536471; font-size: 14px; margin-bottom: 40px; }
+    a { color: #1d9bf0; }
+  </style>
+</head>
+<body>
+
+<h1>Privacy Policy</h1>
+<p class="meta">Region Hover for X / Twitter &mdash; Last updated: May 2026</p>
+
+<h2>What this extension does</h2>
+<p>
+  Region Hover for X / Twitter shows you the X-determined "based in" region for any account whose
+  profile picture you hover over. It does this by reusing the authentication tokens that your
+  browser already holds from your own X session, to query X's own GraphQL API on your behalf.
+</p>
+
+<h2>Data we collect</h2>
+<p>This extension collects <strong>no personal data</strong>. Specifically:</p>
+<ul>
+  <li>No data is sent to any server operated by the extension developer.</li>
+  <li>No analytics, telemetry, or crash reporting is collected.</li>
+  <li>No browsing history or tweet content is read or stored.</li>
+</ul>
+
+<h2>Data stored locally</h2>
+<p>The extension stores the following in your browser's local session storage <em>only</em>:</p>
+<ul>
+  <li>Your X auth token and CSRF token — captured from your existing browser requests to X, used solely to make on-demand API calls to X on your behalf. These are never transmitted outside your browser session.</li>
+  <li>GraphQL query IDs observed from X's own traffic — used to construct well-formed API requests.</li>
+  <li>A short-lived in-memory cache of region results (30-minute TTL) — stored only in page memory for the current tab session, never persisted to disk.</li>
+</ul>
+<p>All session storage is cleared when you close the browser.</p>
+
+<h2>Permissions used</h2>
+<ul>
+  <li><strong>webRequest</strong> — to observe outgoing request headers from your browser to X's API. This is how the extension captures your existing auth token without requiring you to enter credentials. The extension reads headers only; it does not modify, block, or redirect any requests.</li>
+  <li><strong>storage</strong> — to persist the captured tokens across service worker sleep cycles within the same browser session.</li>
+  <li><strong>Host permissions for x.com / twitter.com</strong> — required to inject the hover UI and to make authenticated API calls to X on your behalf.</li>
+</ul>
+
+<h2>Third-party services</h2>
+<p>
+  When you hover a profile picture, the extension calls X's GraphQL API at
+  <code>x.com/i/api/graphql/…</code> using your own credentials.
+  This request is governed by <a href="https://twitter.com/en/privacy" target="_blank">X's Privacy Policy</a>.
+  The extension developer has no involvement in or visibility into that request.
+</p>
+
+<h2>Children's privacy</h2>
+<p>This extension is not directed at children under 13 and does not knowingly collect any information from them.</p>
+
+<h2>Changes to this policy</h2>
+<p>If the extension's data practices change materially, this page will be updated and the extension version will be bumped.</p>
+
+<h2>Contact</h2>
+<p>Questions? Open an issue on the extension's GitHub repository or email <a href="mailto:cynical@gmail.com">cynical@gmail.com</a>.</p>
+
+</body>
+</html>

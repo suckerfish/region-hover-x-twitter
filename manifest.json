@@ -1,13 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "X Region Hover",
+  "name": "Region Hover for X / Twitter",
   "version": "1.0.0",
-  "description": "Show account region on profile picture hover — only fetches on demand.",
+  "description": "Hover any profile picture on X / Twitter to instantly see the account's based-in region. Fetches on demand — no background scanning.",
   "permissions": ["storage", "webRequest"],
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*"
   ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -21,6 +26,10 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "X Region Hover"
+    "default_title": "Region Hover for X / Twitter",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
   }
 }
